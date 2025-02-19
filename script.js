@@ -4,7 +4,7 @@ const waitingScreen = document.getElementById("waitingScreen");
 let currentDate = new Date();
 let tasks = [];
 
-// Initial calendar setup with default data
+// Load initial data
 fetch("data.json")
   .then((response) => response.json())
   .then((data) => {
@@ -68,7 +68,6 @@ async function submitPrompt() {
   console.log("Submitting prompt:", prompt);
 
   try {
-    // Update this URL to match your Cloudflare Pages deployment
     const response = await fetch("/functions/ai", {
       method: "POST",
       headers: {
@@ -84,11 +83,12 @@ async function submitPrompt() {
       }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(data.error || `HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
     console.log("Received data:", data);
 
     if (data.response && Array.isArray(data.response)) {
