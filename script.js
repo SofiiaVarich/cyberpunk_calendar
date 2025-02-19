@@ -8,14 +8,14 @@ let tasks = [];
 
 // Constants
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const API_ENDPOINT = "/ai";
+const API_ENDPOINT = "https://cyberpunk-calendar.YOUR_SUBDOMAIN.workers.dev/ai"; // Update this with your Cloudflare worker URL
 
 /**
  * Initialize the calendar application
  */
 function initializeCalendar() {
   // Load initial tasks from data.json
-  fetch("data.json")
+  fetch("/data.json")
     .then((response) => {
       if (!response.ok) throw new Error("Failed to load initial data");
       return response.json();
@@ -51,11 +51,6 @@ function renderCalendar(date) {
     monthYear.innerHTML = date.toLocaleString("default", {
       month: "long",
       year: "numeric",
-    });
-
-    // Add day headers
-    DAYS_OF_WEEK.forEach((day) => {
-      calendar.innerHTML += `<div class="day-header">${day}</div>`;
     });
 
     // Add empty cells for days before start of month
@@ -145,6 +140,7 @@ async function submitPrompt() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
       },
       body: JSON.stringify({
         messages: [{ role: "user", content: prompt }],
@@ -177,44 +173,26 @@ async function submitPrompt() {
   } catch (error) {
     console.error("AI Processing error:", error);
     alert(`Failed to generate schedule: ${error.message}`);
+    // Load fallback data if AI fails
+    fetch("/data.json")
+      .then((response) => response.json())
+      .then((data) => {
+        tasks = data;
+        renderCalendar(currentDate);
+        alert("Using default schedule as fallback.");
+      });
   } finally {
     waitingScreen.style.display = "none";
   }
 }
 
-/**
- * Add event listeners for keyboard navigation
- */
-function setupKeyboardNavigation() {
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft") {
-      prevMonth();
-    } else if (e.key === "ArrowRight") {
-      nextMonth();
-    }
-  });
-}
-
-/**
- * Initialize the application
- */
-function init() {
+// Initialize the application
+document.addEventListener("DOMContentLoaded", () => {
   initializeCalendar();
-  setupKeyboardNavigation();
 
-  // Add any additional initialization here
-  console.log("Application initialized");
-}
-
-// Start the application
-init();
-
-// Export functions for testing if needed
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = {
-    renderCalendar,
-    formatDate,
-    isCurrentDay,
-    submitPrompt,
-  };
-}
+  // Add keyboard navigation
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") prevMonth();
+    if (e.key === "ArrowRight") nextMonth();
+  });
+});
