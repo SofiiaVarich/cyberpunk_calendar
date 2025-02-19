@@ -1,0 +1,70 @@
+@import url("https://fonts.googleapis.com/css2?family=Orbitron&display=swap");
+
+body {
+    font-family: "Orbitron", sans-serif;
+    background-color: #0a0a0a;
+    color: #0ff;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+.calendar-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    border: 2px solid #0ff;
+    border-radius: 10px;
+    box-shadow: 0px 0px 15px #0ff;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 24px;
+    color: #ff00ff;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #0ff;
+}
+
+.calendar-header button {
+    background: none;
+    border: none;
+    color: #0ff;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.calendar-header button:hover {
+    color: #ff00ff;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.day {
+    padding: 15px;
+    border: 1px solid #0ff;
+    text-align: center;
+    font-size: 18px;
+    transition: 0.3s;
+}
+
+.day:hover {
+    background: #ff00ff;
+    color: #000;
+    cursor: pointer;
+}
+
+.today {
+    background: #0ff;
+    color: #000;
+    font-weight: bold;
+    box-shadow: 0px 0px 10px #0ff;
+}
