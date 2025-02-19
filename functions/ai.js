@@ -55,6 +55,7 @@ User's goal: ${userPrompt}
 
       try {
         const parsedResponse = JSON.parse(jsonResponse);
+        console.log("Parsed response:", parsedResponse);
         if (Array.isArray(parsedResponse) && parsedResponse.length > 0) {
           return new Response(
             JSON.stringify({
