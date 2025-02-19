@@ -84,6 +84,7 @@ body {
 }
 
 .day {
+    position: relative;
     padding: 15px;
     border: 1px solid #0ff;
     text-align: center;
@@ -102,4 +103,37 @@ body {
     color: #000;
     font-weight: bold;
     box-shadow: 0px 0px 10px #0ff;
+}
+
+.tooltip {
+    visibility: hidden;
+    width: 200px;
+    background-color: #0ff;
+    color: #000;
+    text-align: center;
+    border-radius: 5px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #0ff transparent transparent transparent;
+}
+
+.day:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
 }
