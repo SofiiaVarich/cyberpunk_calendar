@@ -58,7 +58,7 @@ function submitPrompt() {
   const prompt = document.getElementById("aiPrompt").value;
   waitingScreen.style.display = "flex";
 
-  fetch("functions/ai.js", {
+  fetch("/ai", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
