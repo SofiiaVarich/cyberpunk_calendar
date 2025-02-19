@@ -4,6 +4,7 @@ const waitingScreen = document.getElementById("waitingScreen");
 let currentDate = new Date();
 let tasks = [];
 
+// Initial calendar setup with default data
 fetch("data.json")
   .then((response) => response.json())
   .then((data) => {
@@ -26,12 +27,16 @@ function renderCalendar(date) {
     year: "numeric",
   });
 
+  // Add empty cells for days before the first day of the month
   for (let i = 0; i < firstDay; i++) {
     calendar.innerHTML += `<div></div>`;
   }
 
+  // Add calendar days
   for (let i = 1; i <= lastDate; i++) {
-    const currentDateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+    const currentDateStr = `${date.getFullYear()}-${String(
+      date.getMonth() + 1,
+    ).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
     const task = tasks.find((task) => task.date === currentDateStr);
     const taskText = task ? `<div class="tooltip">${task.task}</div>` : "";
     const dayClass =
@@ -54,35 +59,55 @@ function nextMonth() {
   renderCalendar(currentDate);
 }
 
-function submitPrompt() {
+async function submitPrompt() {
   const prompt = document.getElementById("aiPrompt").value;
-  waitingScreen.style.display = "flex";
+  if (!prompt.trim()) {
+    alert("Please enter a goal or task description");
+    return;
+  }
 
+  waitingScreen.style.display = "flex";
   console.log("Submitting prompt:", prompt);
 
-  fetch("/ai", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      messages: [{ role: "user", content: prompt }],
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      waitingScreen.style.display = "none";
-      console.log("Received data:", data);
-      if (data.response) {
-        tasks = data.response;
-        renderCalendar(currentDate);
-      } else {
-        alert("Error generating plan. Please try again.");
-      }
-    })
-    .catch((error) => {
-      waitingScreen.style.display = "none";
-      console.error("Error:", error);
-      alert("Error generating plan. Please try again.");
+  try {
+    const response = await fetch("https://your-worker-subdomain.workers.dev", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      }),
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("Received data:", data);
+
+    if (data.response && Array.isArray(data.response)) {
+      tasks = data.response;
+      renderCalendar(currentDate);
+    } else if (data.fallback) {
+      tasks = data.fallback;
+      renderCalendar(currentDate);
+      alert(
+        "AI service temporarily unavailable. Using default schedule as fallback.",
+      );
+    } else {
+      throw new Error("Invalid response format");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    alert(`Error: ${error.message}. Please try again.`);
+  } finally {
+    waitingScreen.style.display = "none";
+  }
 }
