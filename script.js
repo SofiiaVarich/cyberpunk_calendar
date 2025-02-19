@@ -4,7 +4,7 @@ const waitingScreen = document.getElementById("waitingScreen");
 let currentDate = new Date();
 let tasks = [];
 
-// Load initial data
+// Initial load of tasks from data.json
 fetch("data.json")
   .then((response) => response.json())
   .then((data) => {
@@ -27,10 +27,12 @@ function renderCalendar(date) {
     year: "numeric",
   });
 
+  // Add empty cells for days before the first day of the month
   for (let i = 0; i < firstDay; i++) {
     calendar.innerHTML += `<div></div>`;
   }
 
+  // Add calendar days
   for (let i = 1; i <= lastDate; i++) {
     const currentDateStr = `${date.getFullYear()}-${String(
       date.getMonth() + 1,
@@ -65,47 +67,35 @@ async function submitPrompt() {
   }
 
   waitingScreen.style.display = "flex";
-  console.log("Submitting prompt:", prompt);
 
   try {
-    const response = await fetch("/functions/ai", {
+    const response = await fetch("https://YOUR_CLOUDFLARE_WORKER_URL", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
     const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || `HTTP error! status: ${response.status}`);
+    if (data.error) {
+      throw new Error(data.error);
     }
 
-    console.log("Received data:", data);
-
-    if (data.response && Array.isArray(data.response)) {
+    if (data.response) {
       tasks = data.response;
-      renderCalendar(currentDate);
     } else if (data.fallback) {
       tasks = data.fallback;
-      renderCalendar(currentDate);
-      alert(
-        "AI service temporarily unavailable. Using default schedule as fallback.",
-      );
-    } else {
-      throw new Error("Invalid response format");
+      alert("Using fallback schedule - AI service temporarily unavailable");
     }
+
+    renderCalendar(currentDate);
   } catch (error) {
     console.error("Error:", error);
-    alert(`Error: ${error.message}. Please try again.`);
+    alert("Error generating schedule. Please try again later.");
   } finally {
     waitingScreen.style.display = "none";
   }

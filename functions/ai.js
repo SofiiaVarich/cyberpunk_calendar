@@ -5,6 +5,7 @@ export async function onRequest(context) {
     "Access-Control-Allow-Headers": "Content-Type",
   };
 
+  // Handle CORS preflight requests
   if (context.request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -12,90 +13,71 @@ export async function onRequest(context) {
     });
   }
 
+  // Only allow POST requests
   if (context.request.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   try {
     const { request, env } = context;
 
+    // Verify AI binding exists
     if (!env.AI) {
       throw new Error("AI binding not configured");
     }
 
-    // Parse request body
     const data = await request.json();
-    const messages = data.messages || [];
+    const userPrompt = data.messages?.[0]?.content;
 
-    if (!messages.length) {
-      throw new Error("No message provided");
+    if (!userPrompt) {
+      throw new Error("No prompt provided");
     }
 
-    const userPrompt = messages[messages.length - 1].content;
-
+    // Calculate date range
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 45);
 
-    const chatConfig = {
-      messages: [
-        {
-          role: "system",
-          content: `Create a 1.5-month plan from ${startDate.toISOString().split("T")[0]} to ${endDate.toISOString().split("T")[0]} for: ${userPrompt}
+    // Configure AI prompt
+    const systemPrompt = `Create a 1.5-month plan from ${startDate.toISOString().split("T")[0]} to ${endDate.toISOString().split("T")[0]} for: ${userPrompt}
+        Return ONLY a JSON array with this structure:
+        [{"day": "Day of week", "date": "YYYY-MM-DD", "task": "Task description"}]`;
 
-Return ONLY a JSON array with this structure:
-[
-  {
-    "day": "Day of the week",
-    "date": "YYYY-MM-DD",
-    "task": "Task description"
-  }
-]`,
-        },
-        ...messages,
+    const aiResponse = await env.AI.run("@cf/meta/llama-2-7b-chat-int8", {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
       ],
       temperature: 0.7,
       max_tokens: 4000,
-    };
-
-    const aiResponse = await env.AI.run(
-      "@cf/meta/llama-2-7b-chat-int8",
-      chatConfig,
-    );
+    });
 
     if (!aiResponse?.response) {
       throw new Error("Empty AI response");
     }
 
-    try {
-      const parsedResponse = JSON.parse(aiResponse.response);
-      return new Response(JSON.stringify({ response: parsedResponse }), {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (parseError) {
-      throw new Error("Failed to parse AI response");
-    }
+    // Parse and validate AI response
+    const parsedResponse = JSON.parse(aiResponse.response);
+
+    return new Response(JSON.stringify({ response: parsedResponse }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error:", error);
+
+    // Load fallback data
+    const fallbackData = await import("../data.json");
+
     return new Response(
       JSON.stringify({
         error: error.message,
-        fallback: await import("../data.json"),
+        fallback: fallbackData.default,
       }),
       {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
   }
