@@ -1,32 +1,47 @@
-import systemContext from "./data.json";
+import systemContext from "../data.json";
 
-export const onRequestPost = async (context) => {
-  try {
-    const { request, env } = context;
+export async function onRequest(context) {
+  // Handle OPTIONS request for CORS
+  if (context.request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }
 
-    // Verify AI binding
-    if (!env.AI) {
-      throw new Error("AI binding not configured");
-    }
+  // Handle POST request
+  if (context.request.method === "POST") {
+    try {
+      const { env } = context;
 
-    // Parse request body
-    const { messages } = await request.json();
-    if (!messages || !Array.isArray(messages)) {
-      throw new Error("Invalid request format");
-    }
+      // Verify AI binding
+      if (!env.AI) {
+        throw new Error("AI binding not configured");
+      }
 
-    const userPrompt = messages[messages.length - 1].content;
+      // Parse request body
+      const { messages } = await context.request.json();
+      if (!messages || !Array.isArray(messages)) {
+        throw new Error("Invalid request format");
+      }
 
-    // Calculate dates for the next 1.5 months
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + 45); // 1.5 months approximately
+      const userPrompt = messages[messages.length - 1].content;
 
-    const chatConfig = {
-      messages: [
-        {
-          role: "system",
-          content: `You are a planning assistant that creates detailed schedules. Generate a 1.5-month plan from ${startDate.toISOString().split("T")[0]} to ${endDate.toISOString().split("T")[0]} based on the user's goal.
+      // Calculate dates for the next 1.5 months
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + 45);
+
+      const chatConfig = {
+        messages: [
+          {
+            role: "system",
+            content: `You are a planning assistant that creates detailed schedules. Generate a 1.5-month plan from ${startDate.toISOString().split("T")[0]} to ${endDate.toISOString().split("T")[0]} based on the user's goal.
 
 Format the response as a JSON array of objects with this structure:
 [
@@ -45,92 +60,69 @@ Important guidelines:
 3. Include regular milestones and review points
 4. Keep task descriptions clear and concise
 5. Return ONLY the JSON array, no additional text`,
-        },
-        ...messages,
-      ],
-      max_tokens: 4000,
-      temperature: 0.7,
-      top_p: 0.95,
-      frequency_penalty: 0.5,
-    };
+          },
+          ...messages,
+        ],
+        max_tokens: 4000,
+        temperature: 0.7,
+        top_p: 0.95,
+        frequency_penalty: 0.5,
+      };
 
-    // Call AI model
-    const aiResponse = await env.AI.run(
-      "@cf/meta/llama-2-7b-chat-int8",
-      chatConfig,
-    );
+      try {
+        const aiResponse = await env.AI.run(
+          "@cf/meta/llama-2-7b-chat-int8",
+          chatConfig,
+        );
 
-    if (!aiResponse || !aiResponse.response) {
-      throw new Error("Empty AI response");
-    }
-
-    try {
-      // Attempt to parse AI response as JSON
-      const parsedResponse = JSON.parse(aiResponse.response);
-
-      // Validate response format
-      if (!Array.isArray(parsedResponse) || !parsedResponse.length) {
-        throw new Error("Invalid response format");
-      }
-
-      // Validate each entry
-      parsedResponse.forEach((entry) => {
-        if (!entry.day || !entry.date || !entry.task) {
-          throw new Error("Missing required fields in response");
+        if (!aiResponse || !aiResponse.response) {
+          throw new Error("Empty AI response");
         }
-      });
 
+        const parsedResponse = JSON.parse(aiResponse.response);
+
+        if (!Array.isArray(parsedResponse) || !parsedResponse.length) {
+          throw new Error("Invalid response format");
+        }
+
+        return new Response(JSON.stringify({ response: parsedResponse }), {
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
+      } catch (error) {
+        console.error("AI or parsing error:", error);
+        return new Response(
+          JSON.stringify({
+            error: error.message,
+            fallback: systemContext,
+          }),
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+            },
+          },
+        );
+      }
+    } catch (error) {
+      console.error("Server error:", error);
       return new Response(
         JSON.stringify({
-          response: parsedResponse,
-          messages: messages,
+          error: error.message,
+          fallback: systemContext,
         }),
         {
           headers: {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
-            "Cache-Control": "no-cache",
           },
         },
       );
-    } catch (parseError) {
-      console.error("Parse error:", parseError);
-      throw new Error("Failed to parse AI response");
     }
-  } catch (error) {
-    console.error("Server error:", error);
-    return new Response(
-      JSON.stringify({
-        error: error.message,
-        fallback: systemContext,
-      }),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-          "Cache-Control": "no-cache",
-        },
-      },
-    );
   }
-};
 
-export const onRequestOptions = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Max-Age": "86400",
-    },
-  });
-};
-
-export const onRequest = async (context) => {
-  const response = await context.next();
-  response.headers.set("Access-Control-Allow-Origin", "*");
-  response.headers.set("Access-Control-Max-Age", "86400");
-  return response;
-};
+  // Handle other HTTP methods
+  return new Response("Method not allowed", { status: 405 });
+}

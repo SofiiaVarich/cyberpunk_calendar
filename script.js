@@ -27,12 +27,10 @@ function renderCalendar(date) {
     year: "numeric",
   });
 
-  // Add empty cells for days before the first day of the month
   for (let i = 0; i < firstDay; i++) {
     calendar.innerHTML += `<div></div>`;
   }
 
-  // Add calendar days
   for (let i = 1; i <= lastDate; i++) {
     const currentDateStr = `${date.getFullYear()}-${String(
       date.getMonth() + 1,
@@ -70,7 +68,8 @@ async function submitPrompt() {
   console.log("Submitting prompt:", prompt);
 
   try {
-    const response = await fetch("https://your-worker-subdomain.workers.dev", {
+    // Update this URL to match your Cloudflare Pages deployment
+    const response = await fetch("/functions/ai", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
