@@ -5,6 +5,8 @@ export const onRequestPost = async (context) => {
     const { request, env } = context;
     const { messages } = await request.json();
 
+    console.log("Received messages:", messages);
+
     const userPrompt = messages[messages.length - 1].content;
 
     const chatConfig = {
@@ -39,10 +41,14 @@ User's goal: ${userPrompt}
       repetition_penalty: 1.1,
     };
 
+    console.log("Chat config:", chatConfig);
+
     const response = await env.AI.run(
       "@cf/meta/llama-3.1-8b-instruct-fast",
       chatConfig,
     );
+
+    console.log("AI response:", response);
 
     if (response.response) {
       const jsonResponse = response.response;

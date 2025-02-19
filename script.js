@@ -58,6 +58,8 @@ function submitPrompt() {
   const prompt = document.getElementById("aiPrompt").value;
   waitingScreen.style.display = "flex";
 
+  console.log("Submitting prompt:", prompt);
+
   fetch("/ai", {
     method: "POST",
     headers: {
@@ -70,6 +72,7 @@ function submitPrompt() {
     .then((response) => response.json())
     .then((data) => {
       waitingScreen.style.display = "none";
+      console.log("Received data:", data);
       if (data.response) {
         tasks = data.response;
         renderCalendar(currentDate);
