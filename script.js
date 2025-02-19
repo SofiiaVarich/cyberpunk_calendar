@@ -1,5 +1,6 @@
 const monthYear = document.getElementById("monthYear");
 const calendar = document.getElementById("calendar");
+const waitingScreen = document.getElementById("waitingScreen");
 let currentDate = new Date();
 let tasks = [];
 
@@ -55,5 +56,30 @@ function nextMonth() {
 
 function submitPrompt() {
   const prompt = document.getElementById("aiPrompt").value;
-  alert(`You entered: ${prompt}`);
+  waitingScreen.style.display = "flex";
+
+  fetch("functions/ai.js", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messages: [{ role: "user", content: prompt }],
+    }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      waitingScreen.style.display = "none";
+      if (data.response) {
+        tasks = data.response;
+        renderCalendar(currentDate);
+      } else {
+        alert("Error generating plan. Please try again.");
+      }
+    })
+    .catch((error) => {
+      waitingScreen.style.display = "none";
+      console.error("Error:", error);
+      alert("Error generating plan. Please try again.");
+    });
 }
