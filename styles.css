@@ -9,6 +9,41 @@ body {
     padding: 0;
 }
 
+.ai-prompt-container {
+    margin: 20px auto;
+    padding: 10px;
+    max-width: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.ai-prompt-container input {
+    width: 70%;
+    padding: 10px;
+    border: 2px solid #0ff;
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #0ff;
+    font-family: "Orbitron", sans-serif;
+}
+
+.ai-prompt-container button {
+    padding: 10px 20px;
+    border: 2px solid #0ff;
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #0ff;
+    font-family: "Orbitron", sans-serif;
+    cursor: pointer;
+}
+
+.ai-prompt-container button:hover {
+    background: #ff00ff;
+    color: #000;
+}
+
 .calendar-container {
     max-width: 400px;
     margin: 50px auto;

@@ -41,4 +41,9 @@ function nextMonth() {
   renderCalendar(currentDate);
 }
 
+function submitPrompt() {
+  const prompt = document.getElementById("aiPrompt").value;
+  alert(`You entered: ${prompt}`);
+}
+
 renderCalendar(currentDate);
