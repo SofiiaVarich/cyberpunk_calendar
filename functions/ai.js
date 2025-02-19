@@ -5,7 +5,6 @@ export async function onRequest(context) {
     "Access-Control-Allow-Headers": "Content-Type",
   };
 
-  // Handle CORS preflight requests
   if (context.request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -13,7 +12,6 @@ export async function onRequest(context) {
     });
   }
 
-  // Only allow POST requests
   if (context.request.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
@@ -24,7 +22,6 @@ export async function onRequest(context) {
   try {
     const { request, env } = context;
 
-    // Verify AI binding exists
     if (!env.AI) {
       throw new Error("AI binding not configured");
     }
@@ -36,12 +33,10 @@ export async function onRequest(context) {
       throw new Error("No prompt provided");
     }
 
-    // Calculate date range
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 45);
 
-    // Configure AI prompt
     const systemPrompt = `Create a 1.5-month plan from ${startDate.toISOString().split("T")[0]} to ${endDate.toISOString().split("T")[0]} for: ${userPrompt}
         Return ONLY a JSON array with this structure:
         [{"day": "Day of week", "date": "YYYY-MM-DD", "task": "Task description"}]`;
@@ -59,7 +54,6 @@ export async function onRequest(context) {
       throw new Error("Empty AI response");
     }
 
-    // Parse and validate AI response
     const parsedResponse = JSON.parse(aiResponse.response);
 
     return new Response(JSON.stringify({ response: parsedResponse }), {
@@ -68,7 +62,6 @@ export async function onRequest(context) {
   } catch (error) {
     console.error("Error:", error);
 
-    // Load fallback data
     const fallbackData = await import("../data.json");
 
     return new Response(
